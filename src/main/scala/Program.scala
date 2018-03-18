@@ -34,10 +34,12 @@ object Program extends App {
 
   (1 to 100000) foreach { i =>
     Thread.sleep(20)
-    val value = Math.floor(Math.random() * 500)
+    val value1 = Math.floor(Math.random() * 500)
+    val value2 = Math.floor(Math.random() * 1000)
     //    duration.labels("exp1111", "v2").inc(1)
 
-    counter.labels("exp1111", "v2").inc(value)
+    counter.labels("exp1111", "v2").inc(value1)
+    counter.labels("exp1111", "v1").inc(value2)
 
     println(counter.labels("exp1111", "v2").get())
     //    histogram.labels("exp1111", "v2").observe(1)
