@@ -1,36 +1,47 @@
-import akka.actor.ActorSystem
-import akka.kafka.scaladsl.{Consumer, Producer}
-import akka.kafka.{ConsumerSettings, ProducerMessage, ProducerSettings, Subscriptions}
-import akka.stream.ActorMaterializer
-import akka.stream.scaladsl.Source
-import org.apache.kafka.clients.producer.ProducerRecord
-import org.apache.kafka.common.serialization.{ByteArrayDeserializer, ByteArraySerializer, StringDeserializer, StringSerializer}
+import io.prometheus.client._
+import io.prometheus.client.exporter.PushGateway
 
 object Program extends App {
+  val registry = new CollectorRegistry
+  val pg = new PushGateway("127.0.0.1:9091")
 
-  implicit val system = ActorSystem()
-  implicit val materializer = ActorMaterializer()
-  implicit val ec = system.dispatcher
 
-  val producerSettings = ProducerSettings(system, new ByteArraySerializer, new StringSerializer)
-    .withBootstrapServers("localhost:9092")
+  private val histogram: Histogram = Histogram
+    .build("experiment_histogram", "experiment histogram")
+    .labelNames("experiment", "variant")
+    .register(registry)
 
-  val consumerSettings = ConsumerSettings(system, new ByteArrayDeserializer, new StringDeserializer)
-    .withGroupId("G1")
-    .withBootstrapServers("localhost:9092")
 
-  val consumptionDone = Consumer.committableSource(consumerSettings, Subscriptions.topics("test1"))
-    .map { msg =>
-      println(s"topic1 -> topic2: $msg")
-      ProducerMessage.Message(new ProducerRecord[Array[Byte], String](
-        "topic2",
-        msg.record.value
-      ), msg.committableOffset)
-    }
-    .runWith(Producer.commitableSink(producerSettings))
+  val summary = Summary.build()
+    .labelNames("experiment", "variant")
+    .name("experiment_summaries")
+    .help("experiment summaries")
+    .register(registry);
 
-    consumptionDone.andThen {
-    case _ => system.terminate()
+  val duration = Gauge.build
+    .name("experiment_allocations")
+    .help("Experiment Allocations")
+    .labelNames("experiment", "variant")
+    .register(registry)
+
+
+  val counter = Counter.build()
+    .name("allocation_count")
+    .help("allocation count")
+    .labelNames("experiment", "variant")
+    .register(registry);
+
+
+  (1 to 100000) foreach { i =>
+    Thread.sleep(20)
+    val value = Math.floor(Math.random() * 500)
+    //    duration.labels("exp1111", "v2").inc(1)
+
+    counter.labels("exp1111", "v2").inc(value)
+
+    println(counter.labels("exp1111", "v2").get())
+    //    histogram.labels("exp1111", "v2").observe(1)
+    //    summary.labels("exp1111", "v2").observe(1)
+    pg.pushAdd(registry, "my_batch_job")
   }
-
 }

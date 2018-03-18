@@ -13,7 +13,7 @@ services:
     volumes:
       - ./zk-single-kafka-single/zoo1/data:/data
       - ./zk-single-kafka-single/zoo1/datalog:/datalog
-k
+
   kafka1:
     image: confluentinc/cp-kafka:4.0.0
     hostname: kafka1
@@ -32,3 +32,20 @@ k
       - zoo1
     links:
       - zoo1
+
+  prom_gateway:
+    image: prom/pushgateway
+    ports:
+      - "9091:9091"
+
+
+  prometheus:
+    image: prom/prometheus
+    volumes:
+      - ./prometheus/:/etc/prometheus/
+    ports:
+      - "9090:9090"
+    links:
+      - prom_gateway
+
+
