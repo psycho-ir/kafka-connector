@@ -19,14 +19,6 @@ object Program extends App {
     .withGroupId("G1")
     .withBootstrapServers("localhost:9092")
 
-
-  val done = Source(1 to 100)
-    .map(_.toString)
-    .map { elem =>
-      new ProducerRecord[Array[Byte], String]("test1", elem)
-    }
-    .runWith(Producer.plainSink(producerSettings))
-
   val consumptionDone = Consumer.committableSource(consumerSettings, Subscriptions.topics("test1"))
     .map { msg =>
       println(s"topic1 -> topic2: $msg")
@@ -37,8 +29,6 @@ object Program extends App {
     }
     .runWith(Producer.commitableSink(producerSettings))
 
-
-//  done.zip(
     consumptionDone.andThen {
     case _ => system.terminate()
   }
